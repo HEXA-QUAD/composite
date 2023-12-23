@@ -14,6 +14,7 @@ logging.basicConfig(
 
 from resources.resource import RecommendationResource, ReviewResource, UserResource
 from model import CoursePrerequisitesRequest, RecommendationRequest, ReviewRequest
+
 # import logging
 from fastapi import Request
 
@@ -84,6 +85,8 @@ async def create_recommendation_by_student(email: str):
 
 @app.get("/get_reviews")
 async def get_reviews(
+    per_page=None,
+    page=None,
     review_id=None,
     user_id=None,
     pinned=None,
@@ -96,11 +99,13 @@ async def get_reviews(
     modes_of_instruction=None,
     overall_rating=None,
     contents=None,
-    show=None,
+    shown=None,
 ):
     try:
         # logging.info(request.params)
         ok, result = await review_instance.get_reviews(
+            per_page,
+            page,
             review_id,
             user_id,
             pinned,
@@ -113,7 +118,7 @@ async def get_reviews(
             modes_of_instruction,
             overall_rating,
             contents,
-            show,
+            shown,
         )
 
     except Exception as e:
@@ -184,14 +189,120 @@ async def update_review(request: Request):
 @app.delete("/delete_review")
 async def delete_review(request: Request):
     try:
+        b = await request.body()
+        logging.info(b)
         data = await request.json()
+        logging.info(data)
         ok, result = await review_instance.delete_review(data)
+        logging.info(data)
 
     except Exception as e:
         # Log the exception
         logging.error(f"An error occurred: {e}")
         # Raise an HTTPException with a 500 status code
         raise HTTPException(status_code=500, detail="post review Error")
+
+    if ok:
+        return JSONResponse(content=result["response_data"])
+    else:
+        return JSONResponse(content={"message": "fail"})
+
+
+@app.get("/get_comments_by_review_id")
+async def get_comments_by_review_id(review_id):
+    try:
+        ok, result = await review_instance.get_comments_by_review_id(review_id)
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        raise HTTPException(status_code=501, detail="Internal Server Error")
+
+    if ok:
+        logging.info(result["response_data"])
+        return JSONResponse(content=result["response_data"])
+    else:
+        return JSONResponse(content={"message": "fail"})
+
+
+@app.get("/get_num_of_likes_by_review_id")
+async def get_num_of_likes_by_review_id(review_id):
+    try:
+        ok, result = await review_instance.get_num_of_likes_by_review_id(review_id)
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        raise HTTPException(status_code=501, detail="Internal Server Error")
+
+    if ok:
+        logging.info(result["response_data"])
+        return JSONResponse(content=result["response_data"])
+    else:
+        return JSONResponse(content={"message": "fail"})
+
+
+@app.get("/get_num_of_dislikes_by_review_id")
+async def get_num_of_dislikes_by_review_id(review_id):
+    try:
+        ok, result = await review_instance.get_num_of_dislikes_by_review_id(review_id)
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        raise HTTPException(status_code=501, detail="Internal Server Error")
+
+    if ok:
+        logging.info(result["response_data"])
+        return JSONResponse(content=result["response_data"])
+    else:
+        return JSONResponse(content={"message": "fail"})
+
+
+@app.post("/post_comment")
+async def post_comment(request: Request):
+    try:
+        data = await request.json()
+        ok, result = await review_instance.post_comment(data)
+
+    except Exception as e:
+        # Log the exception
+        logging.error(f"An error occurred: {e}")
+        # Raise an HTTPException with a 500 status code
+        raise HTTPException(status_code=500, detail="post comment Error")
+
+    if ok:
+        return JSONResponse(content=result["response_data"])
+    else:
+        return JSONResponse(content={"message": "fail"})
+
+
+@app.post("/update_comment")
+async def update_comment(request: Request):
+    try:
+        data = await request.json()
+        ok, result = await review_instance.update_comment(data)
+
+    except Exception as e:
+        # Log the exception
+        logging.error(f"An error occurred: {e}")
+        # Raise an HTTPException with a 500 status code
+        raise HTTPException(status_code=500, detail="update comment Error")
+
+    if ok:
+        return JSONResponse(content=result["response_data"])
+    else:
+        return JSONResponse(content={"message": "fail"})
+
+
+@app.post("/delete_comment")
+async def delete_comment(request: Request):
+    try:
+        data = await request.json()
+        ok, result = await review_instance.delete_comment(data)
+
+    except Exception as e:
+        # Log the exception
+        logging.error(f"An error occurred: {e}")
+        # Raise an HTTPException with a 500 status code
+        raise HTTPException(status_code=500, detail="delete comment Error")
 
     if ok:
         return JSONResponse(content=result["response_data"])
@@ -228,14 +339,14 @@ async def get_student_taken_courses(email: str):
 @app.get("/get_student_recommendations")
 async def get_student_recommendations(email: str):
     """
-    get all the student recommendation records
+    get all the student recommendation records, and student history
     """
     result = await recommendation_instance.get_student(email)
     return JSONResponse(content={"message": result})
 
 
 ######### add/remove courses from student
-@app.get("/add_course")
+@app.post("/add_course")
 async def add_student_history(
     email: str,
     semester: str,
@@ -256,7 +367,7 @@ async def add_student_history(
     ok = await user_instance.add_semester(email, data)
     if ok:
         return JSONResponse(content={"message": "OK"})
-    return JSONResponse(content={"message": "nooooo"})
+    return JSONResponse(content={"message": "Duplicate"}, status_code=400)
     pass
 
 
@@ -297,6 +408,8 @@ async def update_course(
 async def check_student_course_fufillment(email: str, target_course: str):
     """
     check if the student can take this course
+    1. get_student_taken_courses
+    2. check_fufilled_all_course_prerequisites
     """
     result = await recommendation_instance.check_course_fufillment(email, target_course)
     return JSONResponse(content={"message": result})

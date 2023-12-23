@@ -21,7 +21,7 @@ class ReviewConfig(object):
 
     # Method to get reviews (with filters as params)
     @staticmethod
-    def get_reviews(review_id, user_id, pinned, course_name, course_number, instructor_name, department, term, year, modes_of_instruction, overall_rating, contents, show):
+    def get_reviews(per_page, page, review_id, user_id, pinned, course_name, course_number, instructor_name, department, term, year, modes_of_instruction, overall_rating, contents, shown):
         parameters = locals()
         return_f = f"{ReviewConfig.review_server_ip}{ReviewConfig.review_url}"
 
@@ -66,18 +66,18 @@ class ReviewConfig(object):
 
     # Method to get all comments for a review
     @staticmethod
-    def get_comments_for_review(review_id):
+    def get_comments_by_review_id(review_id):
         return f"{ReviewConfig.review_server_ip}{ReviewConfig.comment_url}?review_id={review_id}&type=comment"
 
     # Method to get the number of likes for a review
     @staticmethod
-    def get_num_of_likes_for_review(review_id):
-        return f"{ReviewConfig.review_server_ip}{ReviewConfig.comment_url}/like/"
+    def get_num_of_likes_by_review_id(review_id):
+        return f"{ReviewConfig.review_server_ip}{ReviewConfig.comment_url}/like?review_id={review_id}"
     
     # Method to get the number of dislikes for a review
     @staticmethod
-    def get_num_of_dislikes_for_review(review_id):
-        return f"{ReviewConfig.review_server_ip}{ReviewConfig.comment_url}/dislike/"
+    def get_num_of_dislikes_by_review_id(review_id):
+        return f"{ReviewConfig.review_server_ip}{ReviewConfig.comment_url}/dislike?review_id={review_id}"
 
     # Method to reply to a review (comment, like, dislike, report, etc.)
     @staticmethod
@@ -91,7 +91,7 @@ class ReviewConfig(object):
 
     # Method to delete a comment by comment id
     @staticmethod
-    def delete_comment(comment_id):
+    def delete_comment():
         return f"{ReviewConfig.review_server_ip}{ReviewConfig.comment_url}"
 
     # Method for admin to pin a review

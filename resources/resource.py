@@ -11,6 +11,9 @@ import logging
 from fastapi import HTTPException
 import logging
 
+from random import randint
+from time import sleep
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +51,6 @@ class RecommendationResource:
     async def fetch(cls, session, resource, method="GET", data=None):
         start_time = time.time()  # Start timing
         status_code = None
-
         url = resource["url"]
         print("Calling URL =", url, "Method =", method)
 
@@ -111,7 +113,7 @@ class RecommendationResource:
                         history.get("courseFour"),
                     ]
                 )
-            courses_taken.remove(None)
+            courses_taken.remove("")
             recommendation_data = {
                 "uni": util.get_email_name(email),
                 "courses_taken": list(courses_taken),
@@ -286,11 +288,11 @@ class ReviewResource:
         return result
 
     # sync
-    async def get_reviews(self, review_id, user_id, pinned, course_name, course_number, instructor_name, department, term, year, modes_of_instruction, overall_rating, contents, show):
+    async def get_reviews(self, per_page, page, review_id, user_id, pinned, course_name, course_number, instructor_name, department, term, year, modes_of_instruction, overall_rating, contents, shown):
         try:
             get_reviews_resource = {
                 "resource": "get_reviews",
-                "url": ReviewConfig().get_reviews(review_id, user_id, pinned, course_name, course_number, instructor_name, department, term, year, modes_of_instruction, overall_rating, contents, show),
+                "url": ReviewConfig().get_reviews(per_page, page, review_id, user_id, pinned, course_name, course_number, instructor_name, department, term, year, modes_of_instruction, overall_rating, contents, shown),
             }
             # logging.info(get_reviews_resource["url"])
         except Exception as e:
@@ -399,6 +401,132 @@ class ReviewResource:
                 return True, delete_review
             else:
                 return False, f"delete review failed"
+    async def get_comments_by_review_id(self, review_id):
+        try:
+            get_comments_by_review_id_resource = {
+                "resource": "get_comments_by_review_id",
+                "url": ReviewConfig().get_comments_by_review_id(review_id),
+            }
+        except Exception as e:
+            logging.error(f"An error occurred here: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        async with aiohttp.ClientSession() as session:
+            get_comments_by_review_id_response = await self.fetch(
+                session, get_comments_by_review_id_resource, method="GET"
+            )
+            get_comments_by_review_id = get_comments_by_review_id_response["data"]
+
+            if get_comments_by_review_id:
+                return True, get_comments_by_review_id
+            else:
+                return False, f"No review found"  
+    async def get_num_of_likes_by_review_id(self, review_id):
+        try:
+            resource = {
+                "resource": "get_get_num_of_likes_by_review_id",
+                "url": ReviewConfig().get_num_of_likes_by_review_id(review_id),
+            }
+        except Exception as e:
+            logging.error(f"An error occurred here: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        async with aiohttp.ClientSession() as session:
+            response = await self.fetch(
+                session, resource, method="GET"
+            )
+            data = response["data"]
+
+            if data:
+                return True, data
+            else:
+                return False, f"Get num of like error"  
+    async def get_num_of_dislikes_by_review_id(self, review_id):
+        try:
+            resource = {
+                "resource": "get_get_num_of_dislikes_by_review_id",
+                "url": ReviewConfig().get_num_of_dislikes_by_review_id(review_id),
+            }
+        except Exception as e:
+            logging.error(f"An error occurred here: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        async with aiohttp.ClientSession() as session:
+            response = await self.fetch(
+                session, resource, method="GET"
+            )
+            data = response["data"]
+
+            if data:
+                return True, data
+            else:
+                return False, f"Get num of dislike error"  
+    async def post_comment(self, data):
+        try:
+            resource = {
+                "resource": "post_comment",
+                "url": ReviewConfig().post_comment(),
+            }
+            
+        except Exception as e:
+            # Log the exception
+            logging.error(f"An error occurred here: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        async with aiohttp.ClientSession() as session:
+            response = await self.fetch(
+                session, resource, method="POST", data=data
+            )
+            data = response["data"]
+
+            if data:
+                return True, data
+            else:
+                return False, f"Post comment failed"
+    async def update_comment(self, data):
+        try:
+            resource = {
+                "resource": "update_comment",
+                "url": ReviewConfig().update_comment(),
+            }
+            
+        except Exception as e:
+            # Log the exception
+            logging.error(f"An error occurred here: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        async with aiohttp.ClientSession() as session:
+            response = await self.fetch(
+                session, resource, method="PUT", data=data
+            )
+            data = response["data"]
+
+            if data:
+                return True, data
+            else:
+                return False, f"Update comment failed"
+    async def delete_comment(self, data):
+        try:
+            resource = {
+                "resource": "delete_comment",
+                "url": ReviewConfig().delete_comment(),
+            }
+            
+        except Exception as e:
+            # Log the exception
+            logging.error(f"An error occurred here: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        async with aiohttp.ClientSession() as session:
+            response = await self.fetch(
+                session, resource, method="DELETE", data=data
+            )
+            data = response["data"]
+
+            if data:
+                return True, data
+            else:
+                return False, f"Delete comment failed"
 class UserResource:
     async def get_student_taken_courses(self, email: str):
         resources = [
